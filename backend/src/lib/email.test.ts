@@ -48,6 +48,9 @@ describe("sendEmail", () => {
       port: 587,
       secure: false,
       auth: { user: "smtp-user", pass: "smtp-pass" },
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000,
     });
     expect(mockSendMail).toHaveBeenCalledWith({
       from: "Senqo <no-reply@example.com>",
@@ -70,6 +73,34 @@ describe("sendEmail", () => {
 
     expect(mockCreateTransport).toHaveBeenCalledWith(
       expect.objectContaining({ port: 465, secure: true }),
+    );
+  });
+
+  // SMTP port is 2465 → transport is created with secure:true, needed because providers offer 2465 as an implicit-TLS alternate for hosts that block 465.
+  it("uses secure transport when SMTP port is 2465", async () => {
+    envMock.smtpPort = "2465";
+
+    await sendEmail({
+      to: "recipient@example.com",
+      subject: "Alternate secure port test",
+    });
+
+    expect(mockCreateTransport).toHaveBeenCalledWith(
+      expect.objectContaining({ port: 2465, secure: true }),
+    );
+  });
+
+  // SMTP port is 2587 → transport is created with secure:false so STARTTLS is negotiated, needed because providers offer 2587 as an explicit-TLS alternate for hosts that block 587.
+  it("uses STARTTLS transport when SMTP port is 2587", async () => {
+    envMock.smtpPort = "2587";
+
+    await sendEmail({
+      to: "recipient@example.com",
+      subject: "Alternate STARTTLS port test",
+    });
+
+    expect(mockCreateTransport).toHaveBeenCalledWith(
+      expect.objectContaining({ port: 2587, secure: false }),
     );
   });
 

@@ -27,6 +27,7 @@
 - Per-connection attach — bind an agent to one or more WhatsApp lines from Agent setup; Inactive / Testing / Live modes stay per connection
 - Tasks — when an agent has multiple attached lines, pick which WhatsApp connection the task sends on
 - Inbound processing — debounced AI runs per conversation; only text and images reach the model
+- Business time — every agent run receives the workspace timezone and current business-local time; relative dates ("tonight", "tomorrow") and time-specific requests are reasoned in that timezone, and the agent must check opening hours or availability from workspace knowledge before confirming any time; it offers alternatives or hands off instead of guessing
 - Custom tools — TypeScript modules in Tool Catalog; compiled on save, run in isolated-vm with SSRF-guarded `fetch`
 - AI tool draft — on Create tool, Generate with AI (Execute code row) drafts name, description, required env, and execute code from pasted API examples or instructions; review before save
 - Workspace secrets — Settings → Secrets stores encrypted env values as `ctx.env` at tool runtime
@@ -36,14 +37,14 @@
 
 ## Knowledge base
 
-- Knowledge page — top-level nav for authoring Context, Response templates, and Human handoff (Agent keeps Profile, Skill/Tool catalogs, and Assets)
+- Knowledge page — top-level nav for authoring Context, Response templates, Human handoff, and Assets (Agent keeps Profile and Skill/Tool catalogs)
 - Import docs — Knowledge page action: pick an agent, upload PDF/CSV/Markdown (up to 20 MB per file, 5 files), AI drafts context/skills/templates in one background job at a time, review when ready (accept/discard per group or item, add one-by-one or all accepted), then attach to that agent; reopen Import docs to continue
 - Workspace context — structured factual snippets organized into groups (Knowledge → Context); list rows show entry count vs group limit; the editor shows last updated and which agents attach the group; groups older than 90 days show a may-be-outdated hint
 - Response templates — canned Q&A pairs used as authoritative replies (Knowledge → Response templates); list rows show entry count vs group limit; editor shows last-updated / used-by / outdated hints
 - Handoff topics — escalation definitions for when to transfer to a human (create/edit groups on Knowledge → Human handoff; attach groups to an agent on Profile → Attached knowledge → Topics that need a human so they are included in the agent prompt with entry ids for `handoff_to_human`; from a group, Handoff settings can also attach agents and choose notify people); list rows show topic count vs group limit; editor shows last-updated / used-by / outdated hints
 - Handoff notify people — via the Handoff settings dialog on a topic group, pick one or more teammates with verified handoff phones for the selected agents; each gets an alert from the conversation’s WhatsApp line when they registered on that same line
 - Skills — markdown playbooks for specialized workflows (Agent → Skill Catalog)
-- Asset groups — sendable files (images, video, audio, documents; up to 20 MB per file) the agent reasons about (Agent → Assets; attach on Profile → Capability)
+- Asset groups — sendable files (images, video, audio, documents; up to 20 MB per file) the agent reasons about (Knowledge → Assets; attach on Profile → Capability)
 - Auto-assign labels — agent can classify conversations with workspace labels
 - Agent attach — Profile → Attached knowledge selects context/template/handoff groups; Profile → Capability selects assets, tools, and skills
 
@@ -73,7 +74,7 @@
 
 ## Team & settings
 
-- Workspace profile — display name, storage usage breakdown, 10 GB default quota
+- Workspace profile — display name, timezone (IANA, defaults to UTC; drives the agent's current time and hours checks), storage usage breakdown, 10 GB default quota
 - API keys — create, list, delete workspace API keys with optional expiry
 - Workspace secrets — encrypted key/value pairs for custom tool `requiredEnv`
 - Team — workspace owners add existing Senqo users to a workspace; unregistered emails are rejected with a clear error
