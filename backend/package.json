@@ -4,13 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node ./node_modules/.bin/tsx watch src/index.ts",
+    "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "build": "tsc",
     "lint": "tsc --noEmit",
-    "agent": "node ./node_modules/.bin/tsx src/scripts/agent.ts",
-    "skills:seed": "node ./node_modules/.bin/tsx src/scripts/seed-skills.ts",
-    "tools:seed": "node ./node_modules/.bin/tsx src/scripts/seed-tools.ts",
+    "agent": "tsx src/scripts/agent.ts",
+    "skills:seed": "tsx src/scripts/seed-skills.ts",
+    "tools:seed": "tsx src/scripts/seed-tools.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

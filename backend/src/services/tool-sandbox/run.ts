@@ -1,4 +1,4 @@
-import ivm from "isolated-vm";
+import type ivm from "isolated-vm";
 import {
   CUSTOM_TOOL_RUN_MEMORY_MB,
   CUSTOM_TOOL_RUN_TIMEOUT_MS,
@@ -21,22 +21,56 @@ export type CustomToolRunInput = {
   timeoutMs?: number;
 };
 
+// Lazy-load isolated-vm so the backend starts even when the native binary is
+// not compiled (e.g. dev on Windows without a compatible MSVC toolchain).
+type IvmType = typeof ivm;
+let _ivm: IvmType | null = null;
+let _ivmAttempted = false;
+
+async function loadIvm(): Promise<IvmType | null> {
+  if (_ivmAttempted) return _ivm;
+  _ivmAttempted = true;
+  try {
+    const mod = await import("isolated-vm");
+    _ivm = mod.default;
+  } catch (e) {
+    console.warn(
+      "[tool-sandbox] isolated-vm native module unavailable — custom tool execution disabled.",
+      "Run `cd backend && npm install` to rebuild the native addon.",
+      String(e),
+    );
+    _ivm = null;
+  }
+  return _ivm;
+}
+
 export async function runCustomTool(
   params: CustomToolRunInput,
 ): Promise<Record<string, unknown>> {
+  const ivmModule = await loadIvm();
+  if (!ivmModule) {
+    return {
+      ok: false,
+      error:
+        "Custom tool sandbox is unavailable: the isolated-vm native module is not compiled. " +
+        "On Windows, install Visual Studio Build Tools with the MSVC v143 C++ workload, " +
+        "then run `cd backend && npm install`.",
+    };
+  }
+
   const bundled = await bundleCustomToolSource(params.source, params.sourceHash);
   if (!bundled.ok) {
     return { ok: false, error: bundled.error };
   }
 
   const timeoutMs = params.timeoutMs ?? CUSTOM_TOOL_RUN_TIMEOUT_MS;
-  const isolate = new ivm.Isolate({ memoryLimit: CUSTOM_TOOL_RUN_MEMORY_MB });
+  const isolate = new ivmModule.Isolate({ memoryLimit: CUSTOM_TOOL_RUN_MEMORY_MB });
   try {
     const context = await isolate.createContext();
     const jail = context.global;
     await jail.set("global", jail.derefInto());
 
-    const fetchBridge = new ivm.Reference(async (url: string, initJson: string) => {
+    const fetchBridge = new ivmModule.Reference(async (url: string, initJson: string) => {
       let init: { method?: string; headers?: Record<string, string>; body?: string } | undefined;
       if (initJson) {
         init = JSON.parse(initJson) as typeof init;
@@ -46,8 +80,8 @@ export async function runCustomTool(
     });
 
     await jail.set("__fetch", fetchBridge);
-    await jail.set("__input", new ivm.ExternalCopy(params.input).copyInto());
-    await jail.set("__ctx", new ivm.ExternalCopy({
+    await jail.set("__input", new ivmModule.ExternalCopy(params.input).copyInto());
+    await jail.set("__ctx", new ivmModule.ExternalCopy({
       env: params.env,
       workspaceId: params.context.workspaceId,
       sessionId: params.context.sessionId,

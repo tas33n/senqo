@@ -5,7 +5,7 @@
   "type": "module",
   "description": "First-party WhatsApp session manager built directly on Baileys. Replaces Evolution API.",
   "scripts": {
-    "dev": "node ./node_modules/.bin/tsx watch src/index.ts",
+    "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "build": "tsc",
     "lint": "tsc --noEmit",

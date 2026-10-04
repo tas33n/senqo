@@ -1,5 +1,8 @@
+import { loadRepoEnv } from "./load-repo-env.js";
 import { parseModelProvider } from "./model-provider.js";
 import { loadModelEnv } from "./model-env.js";
+
+loadRepoEnv();
 
 function requireEnv(name: string): string {
   const value = process.env[name];
